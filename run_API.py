@@ -3,6 +3,7 @@ import requests
 import time
 import yaml
 from munch import munchify
+import pdb
 #%%
 with open("config.yaml", "r") as f:
     doc = yaml.safe_load(f)
@@ -41,6 +42,7 @@ def get_response(chat, options):
     while overloaded == 1:
         response = query({"inputs": chat, "parameters": llm_params, "options": {"use_cache": False}})
         #print(response)
+        pdb.set_trace()
         if response == None:
             print('CAUGHT JSON ERROR')
             continue

@@ -6,6 +6,7 @@ import yaml
 from munch import munchify
 import utils as ut
 import meta_prompting as mp
+import time
 #%%
 with open("config.yaml", "r") as f:
     doc = yaml.safe_load(f)
@@ -15,7 +16,8 @@ total_interactions = config.params.total_interactions
 N = config.params.N
 #%% load running functions
 if config.sim.mode == 'api':
-    import run_API as ask
+    #import run_API as ask
+    import run_API_openai as ask
 if config.sim.mode == 'gpu':
     import run_local as ask
 
@@ -100,6 +102,7 @@ def population(dataframe, run, memory_size, rewards, options, fname):
     new_options = options.copy()
     interaction_dict = dataframe['simulation']
     tracker = dataframe['tracker']
+    start1 = time.time()
     while ut.has_tracker_converged(tracker) == False:
         # randomly choose player and a neighbour
         p1 = random.choice(list(interaction_dict.keys()))
@@ -122,7 +125,10 @@ def population(dataframe, run, memory_size, rewards, options, fname):
             prompt = pr.get_prompt(player, memory_size=memory_size, rules = rules)
 
             # get agent response
-            answers.append(ask.get_response(prompt, options=new_options))
+            #answers.append(ask.get_response(prompt, options=new_options))
+            responses = ask.get_response(prompt, options=new_options)
+            answers.append(responses[0])
+            total_cost = responses[1]
                 
         my_answer, partner_answer = answers
 
@@ -135,6 +141,8 @@ def population(dataframe, run, memory_size, rewards, options, fname):
         
         if len(tracker['outcome']) % 50 == 0:
             print(f"RUN {run} -- INTERACTION {len(tracker['outcome'])}")
+            print(f"Total cost till now: {total_cost}. Used time: {time.time()-start1}")
+            start1 = time.time()
             dataframe['simulation'] = interaction_dict
             dataframe['tracker'] = tracker
             f = open(fname, 'wb')

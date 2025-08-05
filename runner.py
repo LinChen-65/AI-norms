@@ -7,6 +7,9 @@ from munch import munchify
 import utils as ut
 import prompting as pr
 from pathlib import Path
+import pdb
+import os
+import time
 #%%
 with open("config.yaml", "r") as f:
     doc = yaml.safe_load(f)
@@ -31,14 +34,15 @@ version = config.sim.version
 initial = config.params.initial
 initial_composition = config.params.initial_composition
 continue_evolution = config.sim.continue_evolution
+pdb.set_trace()
 #%% 
 def bias_runner():
-    for rewards in rewards_set:
+    for rewards in rewards_set: # 外面3层循环不用看，就是留下了最好的参数，循环只进行一次
         for m in memory_size_set:
             for options in options_set:
 
                 # INDIVIDUAL TESTS
-
+                '''
                 mainfname = f"data/{shorthand}_no_memory_bias_test_{''.join([str(m) for m in options])}_{m}mem" + ".pkl"
                 print(mainfname)
                 try:
@@ -50,7 +54,7 @@ def bias_runner():
                 f = open(mainfname, 'wb')
                 pickle.dump(mainframe, f)
                 f.close()
-                
+                '''
                 # COLLECTIVE TESTS
 
                 # first, we load a baseline model
@@ -67,8 +71,9 @@ def bias_runner():
                 mainframe['rules'] = pr.get_rules(rewards, options = options)
 
                 # run until sim converges
+                start = time.time()
                 for run in range(runs):
-                    temp_fname = "temporary_" + mainfname
+                    temp_fname = "temporary_" + mainfname # 需要手动创建temporary_data文件夹，否则报错
                     if initial == 'None':
                         if len(mainframe.keys())-1 > run:
                             continue
@@ -93,6 +98,8 @@ def bias_runner():
                     # delete temporary file
                     file_to_rem = Path(temp_fname)
                     file_to_rem.unlink(missing_ok=True)
+                
+                print(f'All {runs} runs completed. Used time: ', time.time()-start)
 
 def committed_runner():
     for rewards in rewards_set:

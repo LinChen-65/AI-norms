@@ -77,6 +77,9 @@ theory_avg_outcome = pd.DataFrame(average_bins).mean(axis = 0)#np.mean(average_b
 theory_steps = np.array(range(len(theory_avg_outcome)))
 
 plt.plot(theory_steps/24, theory_avg_outcome, 'k', label='Model', marker = '.', ls = '')
+fig_savepath = 'figures/NG_theoretical_10.png'
+plt.savefig(fig_savepath, bbox_inches='tight')
+print('Figure saved at: ', fig_savepath)
 
 # %%
 f = open("NG_theoretical_10.pkl", 'wb')

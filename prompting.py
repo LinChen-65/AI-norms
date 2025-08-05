@@ -2,16 +2,86 @@
 
 def get_rules(rewards, options):
   incorrect, correct = rewards
-  rule_set = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-  Context: Player 1 is playing a multi-round partnership game with Player 2 for 100 rounds.
-  At each round, Player 1 and Player 2 simultaneously pick an action from the following values: {options}.
-  The payoff that both players get is determined by the following rule:
-  1. If Players play the SAME action as each other, they will both be REWARDED with payoff +{correct} points.
-  2. If Players play DIFFERENT actions to each other, they will both be PUNISHED with payoff {incorrect} points.
-  The objective of each Player is to maximize their own accumulated point tally, conditional on the behavior of the other player.
-  """ 
+  #rule_set = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+  #Context: Player 1 is playing a multi-round partnership game with Player 2 for 100 rounds.
+  #At each round, Player 1 and Player 2 simultaneously pick an action from the following values: {options}.
+  #The payoff that both players get is determined by the following rule:
+  #1. If Players play the SAME action as each other, they will both be REWARDED with payoff +{correct} points.
+  #2. If Players play DIFFERENT actions to each other, they will both be PUNISHED with payoff {incorrect} points.
+  #The objective of each Player is to maximize their own accumulated point tally, conditional on the behavior of the other player.
+  #""" 
+  rule_set = {
+        "role": "system",
+        "content": (
+            "Context: Player 1 is playing a multi-round partnership game with Player 2 for 100 rounds."
+            f"At each round, Player 1 and Player 2 simultaneously pick an action from the following values: {options}."
+            "The payoff that both players get is determined by the following rule:\n"
+            f"1. If Players play the SAME action as each other, they will both be REWARDED with payoff +{correct} points."
+            f"2. If Players play DIFFERENT actions to each other, they will both be PUNISHED with payoff {incorrect} points."
+            "The objective of each Player is to maximize their own accumulated point tally, conditional on the behavior of the other player."
+        )
+  }
   return rule_set
 
+
+
+def get_prompt(player, memory_size, rules):
+    """
+    Build an OpenAI-compatible messages list for the game.
+    player: dict with 'my_history', 'partner_history', 'outcome'
+    memory_size: int
+    rules: dict (system message from get_rules)
+    """
+
+    # Track score
+    l = len(player['my_history'])
+    current_score = 0
+    histories = []
+
+    if l == 0:
+        # First round, no history
+        user_content = (
+            "It is now round 1. The current score of Player 1 is 0.\n"
+            "Answer saying which value Player 1 should pick.\n"
+            "Please think step by step before making a decision. "
+            "Remember, examining history explicitly is important.\n"
+            "Write your answer using the following format: "
+            "{'value': <VALUE_OF_PLAYER_1>; 'reason': <YOUR_REASON>}."
+        )
+        return [rules, {"role": "user", "content": user_content}]
+
+    # If we have history, use up to memory_size past rounds
+    if l < memory_size:
+        indices = range(l)
+    else:
+        indices = list(range(l))[-memory_size:]
+
+    for idx in indices:
+        my_answer = player['my_history'][idx]
+        partner_answer = player['partner_history'][idx]
+        outcome = player['outcome'][idx]
+        current_score += outcome
+        histories.append(
+            f"Round {idx+1}: Player 1 = {my_answer}, Player 2 = {partner_answer}, payoff = {outcome}"
+        )
+
+    history_str = "This is the history of choices in past rounds:\n" + "\n".join(histories)
+
+    # Next round query
+    next_round = len(indices) + 1
+    user_content = (
+        f"{history_str}\n\n"
+        f"It is now round {next_round}. The current score of Player 1 is {current_score}.\n"
+        "Answer saying which value Player 1 should pick.\n"
+        "Please think step by step before making a decision. "
+        "Remember, examining history explicitly is important.\n"
+        "Write your answer using the following format: "
+        "{'value': <VALUE_OF_PLAYER_1>; 'reason': <YOUR_REASON>}."
+    )
+
+    return [rules, {"role": "user", "content": user_content}]
+    
+'''
 def get_prompt(player, memory_size, rules):
 
   # add initial round
@@ -44,6 +114,7 @@ def get_prompt(player, memory_size, rules):
   histories = "\n ".join([f"{hist}" for hist in histories])
   prompt = """\n """.join([rules, history_intro, histories, new_query])
   return prompt
+'''
 
 def get_meta_prompt(player, rules, question):
     # add initial round
